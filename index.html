@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>科学计算器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            margin: 0;
+            padding: 10px;
+            background: #f0f2f5;
+            height: 100vh;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #display {
+            flex: 1;
+            background: #fff;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            text-align: right;
+            font-size: 48px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .buttons {
+            flex: 3;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 10px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            background: #fff;
+            border-radius: 12px;
+            font-size: 24px;
+            padding: 20px;
+            transition: all 0.1s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        button:active {
+            transform: scale(0.95);
+            background: #f8f9fa;
+        }
+
+        .operator {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .special {
+            background: #F44336;
+            color: white;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #121212;
+                color: white;
+            }
+            #display {
+                background: #1e1e1e;
+                color: white;
+            }
+            button {
+                background: #2d2d2d;
+                color: white;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="display">0</div>
+    <div class="buttons">
+        <button class="special" onclick="clearAll()">C</button>
+        <button class="operator" onclick="input('%')">%</button>
+        <button onclick="inputOperator('(')">(</button>
+        <button onclick="inputOperator(')')">)</button>
+        
+        <button onclick="inputNumber(7)">7</button>
+        <button onclick="inputNumber(8)">8</button>
+        <button onclick="inputNumber(9)">9</button>
+        <button class="operator" onclick="inputOperator('÷')">÷</button>
+        
+        <button onclick="inputNumber(4)">4</button>
+        <button onclick="inputNumber(5)">5</button>
+        <button onclick="inputNumber(6)">6</button>
+        <button class="operator" onclick="inputOperator('×')">×</button>
+        
+        <button onclick="inputNumber(1)">1</button>
+        <button onclick="inputNumber(2)">2</button>
+        <button onclick="inputNumber(3)">3</button>
+        <button class="operator" onclick="inputOperator('-')">-</button>
+        
+        <button onclick="inputNumber(0)">0</button>
+        <button onclick="inputDecimal()">.</button>
+        <button class="special" onclick="toggleSign()">±</button>
+        <button class="operator" onclick="inputOperator('+')">+</button>
+        
+        <button class="operator" onclick="calculate()" style="grid-column: span 4">=</button>
+    </div>
+
+    <script>
+        let currentDisplay = '0';
+        let operationStack = [];
+        let lastResult = 0;
+        
+        const display = document.getElementById('display');
+
+        function inputNumber(num) {
+            if(currentDisplay === '0') currentDisplay = num.toString();
+            else if(currentDisplay.length < 15) currentDisplay += num;
+            updateDisplay();
+        }
+
+        function inputDecimal() {
+            if(!currentDisplay.includes('.')) currentDisplay += '.';
+            updateDisplay();
+        }
+
+        function inputOperator(op) {
+            operationStack.push(
+                lastResult = parseFloat(currentDisplay),
+                op.replace('÷', '/').replace('×', '*')
+            );
+            currentDisplay = '0';
+            updateDisplay();
+        }
+
+        function clearAll() {
+            currentDisplay = '0';
+            operationStack = [];
+            lastResult = 0;
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            currentDisplay = (-parseFloat(currentDisplay)).toString();
+            updateDisplay();
+        }
+
+        function calculate() {
+            operationStack.push(parseFloat(currentDisplay));
+            const expression = operationStack.join(' ');
+            try {
+                const result = eval(expression).toString();
+                currentDisplay = result.length > 15 ? result.slice(0,15) : result;
+                operationStack = [];
+                lastResult = 0;
+            } catch {
+                currentDisplay = '错误';
+            }
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            display.textContent = currentDisplay;
+        }
+
+        // 键盘支持
+        document.addEventListener('keydown', (e) => {
+            const keyMap = {
+                '0': 0, '1':1, '2':2, '3':3, '4':4,
+                '5':5, '6':6, '7':7, '8':8, '9':9,
+                '+': '+', '-': '-', '*': '×', '/': '÷',
+                '.': 'decimal', 'Enter': '=',
+                'Escape': 'C'
+            };
+            keyMap[e.key] && (
+                typeof keyMap[e.key] === 'number' ? inputNumber(keyMap[e.key])
+                : keyMap[e.key] === 'decimal' ? inputDecimal()
+                : keyMap[e.key] === '=' ? calculate()
+                : keyMap[e.key] === 'C' ? clearAll()
+                : inputOperator(keyMap[e.key])
+            );
+        });
+    </script>
+
+    <!-- PWA 支持 -->
+    <script>
+        if('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
